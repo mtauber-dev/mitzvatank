@@ -101,6 +101,8 @@ p{margin:0}
 .candles i.shamash{height:24px}
 .pill{align-self:flex-start;font-size:.75rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:99px;background:var(--gold-soft);color:var(--gold)}
 .pill.taken{background:var(--gold);color:var(--gold-ink)}
+a.pill.open{text-decoration:none;border:1.5px solid var(--gold);cursor:pointer}
+a.pill.open:hover,a.pill.open:focus-visible{background:var(--gold);color:var(--gold-ink);outline:none}
 .night-card .by{font-size:.92rem;color:var(--muted)}
 .night-card .by b{color:var(--ink)}
 
@@ -362,7 +364,18 @@ function boot(){
     const cs = document.createElement('div'); cs.className = 'candles'; cs.setAttribute('aria-label', ord(n.candle) + ' candle');
     for (let i = 0; i < 9; i++) { const k = document.createElement('i'); if (i === 4) k.className = 'on shamash'; else if ((i < 4 ? 8 - i : 8 - i + 1) <= n.candle) k.className = 'on'; cs.appendChild(k); }
     const lbl = document.createElement('div'); lbl.className = 'fine'; lbl.textContent = ord(n.candle) + ' candle';
-    const p = document.createElement('span'); p.className = 'pill' + (n.sponsor ? ' taken' : ''); p.textContent = n.sponsor ? 'Sponsored' : 'Open to sponsor';
+    let p;
+    if (n.sponsor) { p = document.createElement('span'); p.className = 'pill taken'; p.textContent = 'Sponsored'; }
+    else {
+      p = document.createElement('a'); p.className = 'pill open'; p.href = '#sponsor'; p.textContent = 'Sponsor this night →';
+      p.addEventListener('click', e => {
+        if (editing) return;
+        e.preventDefault();
+        const s = $('#claim-night'); if (s) s.value = n.day;
+        $('#sponsor').scrollIntoView({behavior: 'smooth', block: 'start'});
+        setTimeout(() => { const f = $('#claim-name'); if (f) f.focus({preventScroll: true}); }, 500);
+      });
+    }
     c.append(d, cs, lbl, p);
     if (n.sponsor) { const by = document.createElement('div'); by.className = 'by'; const b = document.createElement('b'); b.textContent = n.sponsor; by.append('By ', b); if (n.dedication) by.append(document.createElement('br'), n.dedication); c.appendChild(by); }
     box.appendChild(c);
