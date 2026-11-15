@@ -135,6 +135,7 @@ form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 label{display:flex;flex-direction:column;gap:6px;font-size:.88rem;font-weight:600}
 label.wide{grid-column:1/-1}
 input,select{font:400 1rem var(--body);padding:11px 14px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);width:100%}
+textarea{font:400 1rem var(--body);padding:11px 14px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);width:100%;resize:vertical}
 .msg{grid-column:1/-1;background:var(--surface);border:1px dashed var(--gold);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px}
 .msg pre{margin:0;white-space:pre-wrap;font:500 .95rem var(--body)}
 .receipt{margin-top:22px}
@@ -258,9 +259,8 @@ html.editing [data-ek]:focus{outline:2px solid var(--gold);background:color-mix(
     <div class="way">
       <div class="tag"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg></span><span>Cash only</span></div>
       <h3>Cash</h3>
-      <p>Call or text to arrange a cash gift:</p>
-      <div class="num">305-970-7824</div>
-      <div class="btns"><a class="btn sm" href="tel:+13059707824">Call now</a><button class="btn sm" type="button" data-copy="305-970-7824">Copy number</button></div>
+      <p>Want to give cash? Send us a message and we'll set it up.</p>
+      <div class="btns"><a class="btn sm" href="#contact">Send a message</a></div>
       <p class="fine">No checks. Cash, Zelle, or flag us down on the street any night we're out.</p>
     </div>
   </div>
@@ -284,11 +284,22 @@ html.editing [data-ek]:focus{outline:2px solid var(--gold);background:color-mix(
           <pre id="claim-text"></pre>
           <div class="btns"><button class="btn sm gold" type="button" id="copy-msg">Copy message</button><a class="btn sm" id="sms-link" href="#">Open in Messages</a></div>
         </div>
-        <p class="fine">Please send $400 with the Zelle QR code above (memo "Tank"), or call 305-970-7824 to arrange cash. Once we get it, your name goes up on the night.</p>
+        <p class="fine">Please send $400 with the Zelle QR code above (memo "Tank"), or send us a message below to arrange cash. Once we get it, your name goes up on the night.</p>
       </div>
     </form>
   </div>
 
+  <div class="sponsor contact" id="contact">
+    <div class="stack" style="gap:8px"><h3 style="font-size:1.6rem">Send us a message</h3>
+    <p>Want to give cash, ask a question, or set up a dedication? Write to us and we'll get back to you.</p></div>
+    <form id="contact-form" novalidate>
+      <label><span>Your name</span><input id="ct-name" autocomplete="name" required></label>
+      <label><span>Email or phone (so we can reply)</span><input id="ct-reply" autocomplete="email" required></label>
+      <label class="wide"><span>Message</span><textarea id="ct-msg" rows="4" maxlength="2000" required></textarea></label>
+      <input id="ct-web" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px">
+      <div class="wide" style="display:flex;flex-direction:column;gap:8px;align-items:flex-start"><button class="btn gold" type="submit" id="ct-btn">Send message</button><p class="fine" id="ct-status" role="status" hidden></p></div>
+    </form>
+  </div>
   <p class="fine receipt">Need a receipt? Put your name in the Zelle memo, or tell us when you give cash, and we'll send one. And if you want to thank the driver, a tip goes straight to him.</p>
 </section>
 
@@ -311,7 +322,7 @@ const ord = n => n + (n===1?'st':n===2?'nd':n===3?'rd':'th');
 
 // ---- every text block on the page gets a stable key, so edits can be saved and re-applied ----
 const INLINE = new Set(['B','I','EM','STRONG','BR','SPAN']);
-const SKIP = 'script,style,svg,select,option,input,textarea,[data-nights],#claim-msg,#claim-err,[data-raised],[data-needed],[data-pct],[data-goal],[data-track],#edit-link';
+const SKIP = 'script,style,svg,select,option,input,textarea,[data-nights],#claim-msg,#claim-err,#ct-status,[data-raised],[data-needed],[data-pct],[data-goal],[data-track],#edit-link';
 const hash = s => { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
 const isLeaf = el => el.textContent.trim() !== '' && [...el.querySelectorAll('*')].every(c => INLINE.has(c.tagName));
 (function walk(root){
@@ -388,10 +399,8 @@ function boot(){
       $('#claim-head').textContent = 'Thank you, ' + name + '! We got your request for ' + n.day + '. We\'ll be in touch to confirm.';
       $('#claim-text-wrap').hidden = true;
     } else {
-      $('#claim-head').textContent = 'Almost done! Text this message to Yisroel at 305-970-7824 to lock in your night:';
-      $('#claim-text').textContent = txt;
-      $('#sms-link').href = 'sms:+13059707824?&body=' + encodeURIComponent(txt);
-      $('#claim-text-wrap').hidden = false;
+      $('#claim-head').textContent = 'Sorry, we couldn\'t save your request. Please send us a message below with the night you want.';
+      $('#claim-text-wrap').hidden = true;
     }
     $('#claim-msg').hidden = false;
     $('#claim-msg').scrollIntoView({behavior:'smooth', block:'nearest'});
@@ -399,6 +408,22 @@ function boot(){
 
   app.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', () => { if (!editing) copy(b.dataset.copy, b); }));
   $('#copy-msg').addEventListener('click', e => copy($('#claim-text').textContent, e.currentTarget));
+  const ctLabel = $('#ct-btn').innerHTML;
+  $('#contact-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const st = $('#ct-status'), btn = $('#ct-btn');
+    const name = $('#ct-name').value.trim(), reply = $('#ct-reply').value.trim(), message = $('#ct-msg').value.trim();
+    const say = (t, bad) => { st.textContent = t; st.hidden = false; st.style.color = bad ? '#c2410c' : ''; };
+    if (!name || !reply || !message) { say('Please fill in your name, how to reach you, and a message.', true); return; }
+    btn.disabled = true; btn.textContent = 'Sending…';
+    try {
+      const r = await fetch('api/contact.php', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({name, reply, message, website: $('#ct-web').value})});
+      const j = await r.json().catch(() => null);
+      if (r.ok && j && j.ok) { $('#contact-form').reset(); say('Thank you! Your message was sent. We\'ll get back to you soon.'); }
+      else say((j && j.error) || 'Could not send right now. Please try again in a few minutes.', true);
+    } catch (_) { say('Could not reach the server. Check your connection and try again.', true); }
+    btn.disabled = false; btn.innerHTML = ctLabel;
+  });
 }
 
 // ---- admin: log in, edit any text in place, publish ----

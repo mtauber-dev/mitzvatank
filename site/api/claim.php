@@ -42,4 +42,10 @@ $res = with_lock(function () use ($name, $phone, $night, $ded, $pay) {
     write_json('claims.json', $claims);
     return [200, ['ok' => true]];
 });
+if ($res[0] === 200) {
+    notify(
+        'Mitzvah Tank: ' . $name . ' wants to sponsor ' . $night,
+        "New sponsor request from the Mitzvah Tank website\n\nName: $name\nNight: $night\nPays by: $pay\n" . ($phone !== '' ? "Phone: $phone\n" : '') . ($ded !== '' ? "Dedication: $ded\n" : '') . "\nWhen the \$400 comes in, mark it sponsored: https://mitzvatank.easeintech.com/admin.php\n"
+    );
+}
 out($res[0], $res[1]);

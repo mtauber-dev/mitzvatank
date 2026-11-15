@@ -58,6 +58,11 @@ if ($authed && $action !== '' && $action !== 'login') {
                 break;
             }
             $claims = array_values($claims);
+        } elseif ($action === 'delmsg') {
+            $id = (string)($_POST['id'] ?? '');
+            $msgs = array_values(array_filter(read_json('messages.json', []), fn($x) => ($x['id'] ?? '') !== $id));
+            write_json('messages.json', $msgs);
+            $m = 'Message deleted.';
         }
         $s['updated'] = date('c');
         write_json('state.json', $s);
@@ -69,6 +74,7 @@ if ($authed && $action !== '' && $action !== 'login') {
 $s = read_json('state.json', ['goal' => 2000, 'raised' => 0, 'nights' => []]);
 $claims = array_reverse(read_json('claims.json', []));
 $newCount = count(array_filter($claims, fn($c) => ($c['status'] ?? '') === 'new'));
+$messages = array_reverse(read_json('messages.json', []));
 ?><!doctype html>
 <html lang="en">
 <head>
@@ -130,6 +136,24 @@ legend{font-weight:700;padding:0 6px}
     </div>
   </div>
   <?php if ($msg): ?><div class="msg" role="status"><?= h($msg) ?></div><?php endif; ?>
+
+  <div class="card">
+    <h2>Messages <?php if ($messages): ?><span class="pill"><?= count($messages) ?></span><?php endif; ?></h2>
+    <?php if (!$messages): ?>
+      <p class="muted">No messages yet. When someone uses "Send us a message" on the website, it shows up here and is emailed to you.</p>
+    <?php endif; ?>
+    <?php foreach ($messages as $c): ?>
+      <div class="claim">
+        <div class="row"><strong><?= h($c['name']) ?></strong><span class="muted">reply to <span style="font-family:'JetBrains Mono',monospace"><?= h($c['reply']) ?></span></span></div>
+        <div style="white-space:pre-wrap"><?= h($c['message']) ?></div>
+        <div class="muted">Sent <?= h(date('D M j, g:i a', strtotime($c['at']))) ?><?php if (isset($c['emailed'])): ?> · <?= $c['emailed'] ? 'emailed to you' : 'email could not be sent' ?><?php endif; ?></div>
+        <form method="post">
+          <input type="hidden" name="action" value="delmsg"><input type="hidden" name="csrf" value="<?= h($csrf) ?>"><input type="hidden" name="id" value="<?= h($c['id']) ?>">
+          <button class="btn sm" type="submit">Delete</button>
+        </form>
+      </div>
+    <?php endforeach; ?>
+  </div>
 
   <div class="card">
     <h2>Sponsor requests <?php if ($newCount): ?><span class="pill"><?= $newCount ?> new</span><?php endif; ?></h2>

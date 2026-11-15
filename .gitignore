@@ -10,3 +10,6 @@ site/data/claims.json
 site/data/*.tmp
 site/data/.lock
 site/.hostinger/
+site/data/mail.php
+site/data/messages.json
+site/data/ratelimit.json

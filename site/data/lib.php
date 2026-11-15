@@ -41,6 +41,35 @@ function clean_html($s): string {
     return function_exists('mb_substr') ? mb_substr($s, 0, 5000) : substr($s, 0, 5000);
 }
 
+// Email a notice to the address in data/mail.php (kept off the website and out of git).
+function notify(string $subject, string $body, string $replyTo = ''): bool {
+    $f = DATA_DIR . '/mail.php';
+    if (!is_file($f)) return false;
+    $cfg = require $f;
+    $to = (string)($cfg['to'] ?? '');
+    if (!filter_var($to, FILTER_VALIDATE_EMAIL)) return false;
+    $from = (string)($cfg['from'] ?? 'no-reply@mitzvatank.easeintech.com');
+    $headers = "From: Mitzvah Tank website <$from>\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n";
+    if ($replyTo !== '' && filter_var($replyTo, FILTER_VALIDATE_EMAIL)) $headers .= "Reply-To: $replyTo\r\n";
+    $subject = '=?UTF-8?B?' . base64_encode(str_replace(["\r", "\n"], ' ', $subject)) . '?=';
+    return @mail($to, $subject, $body, $headers, '-f' . $from);
+}
+
+// At most $max requests per hour from one visitor for a given form.
+function rate_ok(string $bucket, int $max): bool {
+    $ip = hash('sha256', ($_SERVER['REMOTE_ADDR'] ?? '') . $bucket);
+    return with_lock(function () use ($ip, $max) {
+        $r = read_json('ratelimit.json', []);
+        $now = time();
+        foreach ($r as $k => $times) { $r[$k] = array_values(array_filter((array)$times, fn($t) => $t > $now - 3600)); if (!$r[$k]) unset($r[$k]); }
+        $mine = $r[$ip] ?? [];
+        if (count($mine) >= $max) { write_json('ratelimit.json', $r); return false; }
+        $mine[] = $now; $r[$ip] = $mine;
+        write_json('ratelimit.json', $r);
+        return true;
+    });
+}
+
 function start_admin_session(): void {
     if (session_status() === PHP_SESSION_ACTIVE) return;
     session_set_cookie_params(['lifetime' => 0, 'path' => '/', 'secure' => true, 'httponly' => true, 'samesite' => 'Strict']);
