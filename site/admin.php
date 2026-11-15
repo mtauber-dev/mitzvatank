@@ -33,19 +33,21 @@ $authed = !empty($_SESSION['ok']);
 if ($authed && ($action === 'mailcfg' || $action === 'mailtest')) {
     if (!hash_equals($csrf, (string)($_POST['csrf'] ?? ''))) { http_response_code(400); exit('Please reload the page and try again.'); }
     $mc = mail_cfg();
-    if ($action === 'mailcfg') {
+    $saveOk = true;
+    if (isset($_POST['mail_to'])) {
         $to = trim((string)($_POST['mail_to'] ?? ''));
         $user = trim((string)($_POST['smtp_user'] ?? ''));
         $pass = (string)($_POST['smtp_pass'] ?? '');
-        if (!filter_var($to, FILTER_VALIDATE_EMAIL)) $msg = 'The "Send messages to" address doesn\'t look right.';
-        elseif ($user !== '' && !filter_var($user, FILTER_VALIDATE_EMAIL)) $msg = 'The mailbox address doesn\'t look right.';
+        if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { $msg = 'The "Send messages to" address doesn\'t look right.'; $saveOk = false; }
+        elseif ($user !== '' && !filter_var($user, FILTER_VALIDATE_EMAIL)) { $msg = 'The mailbox address doesn\'t look right.'; $saveOk = false; }
         else {
             $mc['to'] = $to; $mc['smtp_user'] = $user;
             if ($pass !== '') $mc['smtp_pass'] = $pass;
             save_mail_cfg($mc);
             $msg = 'Email settings saved. Press "Send test email" to check them.';
         }
-    } else {
+    }
+    if ($action === 'mailtest' && $saveOk) {
         $err = filter_var($mc['to'], FILTER_VALIDATE_EMAIL) ? smtp_send($mc, $mc['to'], 'Mitzvah Tank website: test email', "This is a test from the Mitzvah Tank website admin page.\n\nIf you're reading this, website messages and sponsor requests will reach you here.\n") : 'Set "Send messages to" first.';
         $msg = $err === '' ? 'Test email sent to ' . $mc['to'] . '. Check that inbox (and Spam).' : 'Test email failed: ' . $err;
     }
@@ -234,9 +236,10 @@ legend{font-weight:700;padding:0 6px}
       <label>Send messages to<input type="text" name="mail_to" id="mail_to" value="<?= h($mc['to']) ?>" autocomplete="off"></label>
       <label>Send from (Hostinger mailbox)<input type="text" name="smtp_user" id="smtp_user" value="<?= h($mc['smtp_user']) ?>" placeholder="website@mitzvatank.easeintech.com" autocomplete="off"></label>
       <label>Mailbox password<input type="password" name="smtp_pass" id="smtp_pass" autocomplete="new-password" placeholder="<?= $mc['smtp_pass'] !== '' ? 'Saved. Leave empty to keep it' : 'Not set yet' ?>"></label>
-      <div style="display:flex;align-items:flex-end"><input type="hidden" name="action" value="mailcfg"><input type="hidden" name="csrf" value="<?= h($csrf) ?>"><button class="btn gold" type="submit">Save email settings</button></div>
+      <div class="row" style="align-items:flex-end;grid-column:1/-1"><input type="hidden" name="csrf" value="<?= h($csrf) ?>">
+        <button class="btn gold" type="submit" name="action" value="mailcfg">Save email settings</button>
+        <button class="btn" type="submit" name="action" value="mailtest">Save and send test email</button></div>
     </form>
-    <form method="post"><input type="hidden" name="action" value="mailtest"><input type="hidden" name="csrf" value="<?= h($csrf) ?>"><button class="btn sm" type="submit">Send test email</button></form>
   </div>
 <?php endif; ?>
 </div>
