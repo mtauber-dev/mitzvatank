@@ -1,0 +1,11 @@
+{
+  "goal": 2000,
+  "raised": 0,
+  "nights": [
+    { "day": "Monday, Dec 7", "candle": 4, "sponsor": "", "dedication": "" },
+    { "day": "Tuesday, Dec 8", "candle": 5, "sponsor": "", "dedication": "" },
+    { "day": "Wednesday, Dec 9", "candle": 6, "sponsor": "", "dedication": "" },
+    { "day": "Thursday, Dec 10", "candle": 7, "sponsor": "", "dedication": "" },
+    { "day": "Friday, Dec 11 (before Shabbos)", "candle": 8, "sponsor": "", "dedication": "" }
+  ]
+}

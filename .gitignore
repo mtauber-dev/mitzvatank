@@ -1,0 +1,12 @@
+# Passwords and local-only notes
+.secrets/
+
+# Server data: login hashes, live totals, page edits, and donors' sponsor requests
+site/data/users.php
+site/data/config.php
+site/data/state.json
+site/data/content.json
+site/data/claims.json
+site/data/*.tmp
+site/data/.lock
+site/.hostinger/
