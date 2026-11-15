@@ -31,4 +31,8 @@ return [
 
 ## Deploying
 
-Upload the changed files under `site/` to the website's `public_html` (Hostinger file manager, or the Hostinger API upload). Don't overwrite `site/data/*.json` on the server; those hold the live totals, edits and requests.
+Upload the changed files under `site/` to the website's `public_html` (Hostinger file manager, or the Hostinger API upload). Don't overwrite `site/data/*.json` or `site/data/mail.php` on the server; those hold the live totals, edits, requests, messages and the email settings saved from the admin page.
+
+## Email
+
+The contact form and sponsor requests are emailed by logging in to a Hostinger mailbox over SMTP (`smtp.hostinger.com:465`). The mailbox address, its password and the "send to" address are set in **Email settings** on `admin.php` and stored in `site/data/mail.php`. Every message is also kept on the admin page.
